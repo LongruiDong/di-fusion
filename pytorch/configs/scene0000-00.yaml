@@ -1,0 +1,62 @@
+# Sequence parameters
+sequence_type: "scannet.ScanNet" #指定data api class
+sequence_kwargs: #读入数据时的路径等 参数
+  path: "dataset/scannet/scans/scene0000_00/frames"
+  start_frame: 0
+  end_frame: -1                                       # Run all frames -1.4, 1.5, 1.5
+  first_tq: [-3.9, -1.5, 3.6, 0.7071067811865476, -0.7071067811865475, -0.0, -0.0]     # Starting pose 首帧位姿 tx ty tz | w i j k 实部在前
+  load_gt: True                                       # load gt pose False默认不读入 补充 
+
+# Network parameters (network structure, etc. will be inherited from the training config)
+training_hypers: "ckpt/default/hyper.json"
+using_epoch: 300
+
+# Separate tracking and meshing.
+run_async: false
+# Enable visualization
+vis: false
+resolution: 4
+
+# These two define the range of depth observations to be cropped. Unit is meter.
+depth_cut_min: 0.5
+depth_cut_max: 10.0 # 5 10
+
+meshing_interval: 20
+integrate_interval: 20
+
+# Mapping parameters
+mapping:
+  # axis_aligned_bounding_box:  默认参数下点云bound dt 10
+  # axis_aligned_bounding_box: 
+  # [(-4.2522, -1.6250, -5.9012) - (6.6289, 1.3797, 3.6481)]
+  # extent: 
+  # [10.88113807  3.00465807  9.54932398]
+  # Bound of the scene to be reconstructed
+  bound_min: [-6.5, -2, -8.5]
+  bound_max: [8.5, 1.9, 5.6]
+  voxel_size: 0.1
+  # Prune observations if detected as noise.
+  prune_min_vox_obs: 16
+  ignore_count_th: 16.0
+  encoder_count_th: 600.0
+
+# Tracking parameters
+tracking:
+  # An array defining how the camera pose is optimized.
+  # Each element is a dictionary:
+  #   For example {"n": 2, "type": [['sdf'], ['rgb', 1]]} means to optimize the summation of sdf term and rgb term
+  # at the 1st level pyramid for 2 iterations.
+  iter_config:
+    - {"n": 10, "type": [['rgb', 2]]}
+    - {"n": 10, "type": [['sdf'], ['rgb', 1]]}
+    - {"n": 50, "type": [['sdf'], ['rgb', 0]]}
+  sdf:
+    robust_kernel: "huber"
+    robust_k: 5.0
+    subsample: 0.5
+  rgb:
+    weight: 500.0
+    robust_kernel: null
+    robust_k: 0.01
+    min_grad_scale: 0.0
+    max_depth_delta: 0.2

@@ -7,7 +7,7 @@ import yaml
 import random
 import pickle
 from collections import defaultdict, OrderedDict
-
+# -*- coding:utf-8 -*-
 
 def parse_config_json(json_path: Path, args: argparse.Namespace = None):
     """
@@ -81,12 +81,12 @@ class ArgumentParserX(argparse.ArgumentParser):
         self.add_hyper_arg = add_hyper_arg
         self.base_config_path = base_config_path
         if self.add_hyper_arg:
-            self.add_argument('hyper', type=str, help='Path to the yaml parameter')
+            self.add_argument('hyper', type=str, help='Path to the yaml parameter')# yaml路径
         self.add_argument('--exec', type=str, help='Extract code to modify the args')
 
     def parse_args(self, args=None, namespace=None):
         # Parse arg for the first time to extract args defined in program.
-        _args = self.parse_known_args(args, namespace)[0]
+        _args = self.parse_known_args(args, namespace)[0] # 拿到yaml路径
         # Add the types needed.
         file_args = argparse.Namespace()
         if self.base_config_path is not None:
@@ -94,14 +94,14 @@ class ArgumentParserX(argparse.ArgumentParser):
         if self.add_hyper_arg:
             if _args.hyper.endswith("json"):
                 file_args = parse_config_json(Path(_args.hyper), file_args)
-            else:
+            else: # 读入config/ yaml
                 file_args = parse_config_yaml(Path(_args.hyper), file_args)
             for ckey, cvalue in file_args.__dict__.items():
                 try:
                     self.add_argument('--' + ckey, type=type(cvalue), default=cvalue, required=False)
                 except argparse.ArgumentError:
                     continue
-        # Parse args fully to extract all useful information
+        # Parse args fully to extract all useful information 参数转到_args
         _args = super().parse_args(args, namespace)
         # After that, execute exec part.
         exec_code = _args.exec

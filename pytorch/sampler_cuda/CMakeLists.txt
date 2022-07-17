@@ -5,7 +5,9 @@ find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 3.3 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(flann REQUIRED)
-
+#include_directories(
+#${Pangolin_INCLUDE_DIRS}
+#)
 add_executable(PreprocessMeshCUDA PreprocessMesh.cu ShaderProgram.cpp Utils.cu)
 target_link_libraries(PreprocessMeshCUDA PRIVATE Eigen3::Eigen CLI11::CLI11 pangolin flann_cuda -lcurand)
 target_compile_features(PreprocessMeshCUDA PRIVATE cxx_std_14)

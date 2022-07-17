@@ -8,6 +8,20 @@ This repository contains the implementation of our CVPR 2021 paper: DI-Fusion: O
 
 DI-Fusion (Deep Implicit Fusion) is a novel online 3D reconstruction system based on RGB-D streams. It simultaneously localizes the camera and builds a local implicit map parametrized by a deep network. Please refer to our [technical report](http://arxiv.org/abs/2012.05551) and [video](https://youtu.be/yxkIQFXQ6rw) for more details.
 
+## dependency
+
+它的requirements 会有一些包安装异常
+
+```bash
+conda create -n di-fusion python=3.7
+conda activate di-fusion
+while read requirement; do conda install --yes $requirement || pip install $requirement; done < requirements.txt
+pip3 install numba
+pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113 #for amax cuda11.3
+pip3 install torch_scatter
+
+```
+
 ## Training
 
 The network for representing geometry is trained on [ShapeNet](https://shapenet.org/) and learns the relationship between the depth point observations and the local geometry.
@@ -17,10 +31,54 @@ The network for representing geometry is trained on [ShapeNet](https://shapenet.
 The data generation step is similar to [DeepSDF](https://github.com/facebookresearch/DeepSDF). In this repo we contribute a CUDA-based sampler alternative. To compile, run:
 
 ```bash
+# 现需要解决一些依赖
+//  CLI11
+git clone https://github.com/CLIUtils/CLI11
+cd CLI11/
+mkdir build 
+cd build 
+git submodule update --init 
+cmake .. 
+cmake --build . -j24
+sudo cmake --install . 
+This will install CLI11 globaly. Also you can use local options proposed at CLI README. But in this case you will have to change CMakeLists.txt.
+
+# FLANN https://icode.best/i/63881145085317 ISSUE 
+# 还要打开 cuda ON
+git clone https://github.com/flann-lib/flann
+cd flann
+mkdir release
+cd release
+cmake ..
+make -j24
+sudo make install
+
+# Pangolin v0.6
+wget https://github.com/stevenlovegrove/Pangolin/archive/refs/tags/v0.6.tar.gz
+cd Pangolin
+mkdir build && cd build
+cmake ..
+cmake --build . -j24
+sudo make install
+sudo ldconfig -v
+
+# variant
+git clone git@github.com:mpark/variant.git
+mkdir variant/build && cd variant/build
+cmake ..
+sudo cmake --build . --target install
+
+# [100%] Linking CXX executable ../bin/PreprocessMeshCUDA
+# /usr/bin/ld: warning: libpython3.9.so.1.0, needed by /usr/local/lib/libpangolin.so, not found (try using -rpath or -rpath-link)
+# to solve above issue
+sudo apt-get install libpython3.9
+
+# hory!
+
 cd sampler_cuda
 mkdir build; cd build
 cmake ..
-make -j
+make -j24
 ```
 
 This will gives you a binary named `PreprocessMeshCUDA` under the `sampler_cuda/bin/` directory.

@@ -198,12 +198,12 @@ __device__ static inline float4 sdf_interp(const float3 p1, const float3 p2, con
                        p1.z * w1 + p2.z * w2,
                        stdp1 * w1 + stdp2 * w2);
 }
-
+//被主函数调用
 __global__ static void meshing_cube(const IndexerAccessor indexer,
                                     const ValidBlocksAccessor valid_blocks,
                                     const BackwardMappingAccessor vec_batch_mapping,
                                     const CubeSDFAccessor cube_sdf,
-                                    const CubeSDFAccessor cube_std,
+                                    const CubeSDFAccessor cube_std, // 是那个uncertainty吗？
                                     TrianglesAccessor triangles,
                                     TriangleStdAccessor triangle_std,
                                     TriangleVecIdAccessor triangle_flatten_id,
@@ -211,7 +211,7 @@ __global__ static void meshing_cube(const IndexerAccessor indexer,
                                     int max_triangles_count,
                                     const uint max_vec_num,
                                     int nx, int ny, int nz,
-                                    float max_std) {
+                                    float max_std) { //这是个阈值吗
     const uint r = cube_sdf.size(1) / 2;
     const uint r3 = r * r * r;
     const uint num_lif = valid_blocks.size(0);
@@ -301,9 +301,9 @@ __global__ static void meshing_cube(const IndexerAccessor indexer,
         for (int vi = 0; vi < 3; ++vi) {
             vp[vi] = vert_list[triangleTable[cube_type][i + vi]];
         }
-        if (vp[0].w > max_std || vp[1].w > max_std || vp[2].w > max_std) {
+        if (vp[0].w > max_std || vp[1].w > max_std || vp[2].w > max_std) { // 过滤了一次？ 大于阈值的就去掉
             continue;
-        }
+        } //但即使注释掉 好像没变化
         int triangle_id = atomicAdd(triangles_count, 1);
         if (triangle_id < max_triangles_count) {
 #pragma unroll
@@ -318,16 +318,16 @@ __global__ static void meshing_cube(const IndexerAccessor indexer,
     }
 
 }
-
+// python 中调用的
 std::vector<torch::Tensor> marching_cubes_sparse_interp_cuda(
         torch::Tensor indexer,              // (nx, ny, nz) -> data_id
         torch::Tensor valid_blocks,         // (K, )
         torch::Tensor vec_batch_mapping,
         torch::Tensor cube_sdf,             // (M, rx, ry, rz)
         torch::Tensor cube_std,             // (M, rx, ry, rz)
-        int max_n_triangles,                // Maximum number of triangle buffer.
+        int max_n_triangles,                // Maximum number of triangle buffer. ?
         const std::vector<int>& n_xyz,      // [nx, ny, nz]
-        float max_std                       // Prune all vertices
+        float max_std                       // Prune all vertices ?
 ) {
     CHECK_INPUT(indexer);
     CHECK_INPUT(valid_blocks);

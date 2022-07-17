@@ -1,5 +1,5 @@
 import copy
-
+# -*- coding:utf-8 -*-
 import torch
 import numpy as np
 from system.ext import unproject_depth, remove_radius_outlier, estimate_normals, rgb_odometry, gradient_xy
@@ -32,7 +32,7 @@ class SDFTracker:
         # Temporal information
         self.last_intensity = None
         self.last_depth = None
-        self.all_pd_pose = []
+        self.all_pd_pose = [] # 初始为空
         self.last_processed_pc = None       # store it to be used in subsequent integration
         self.cur_gt_pose = None             # For measure iteration error.
         self.last_colored_pcd = None        # store it for texture storage and extraction
@@ -77,7 +77,7 @@ class SDFTracker:
         :param rgb_data:    (H, W, 3)       float32
         :param depth_data:  (H, W)          float32
         :param calib:       FrameIntrinsic
-        :param set_pose:    Force set pose.
+        :param set_pose:    Force set pose. # 设置gt?
         :return: a pose.
         """
         cur_intensity = torch.mean(rgb_data, dim=-1)
@@ -116,11 +116,11 @@ class SDFTracker:
         pc_data, normal_data = point_box_filter(pc_data, normal_data, 0.02)
         self.last_processed_pc = [pc_data, normal_data]
 
-        if set_pose is not None:
+        if set_pose is not None: #若给出pose 就设置
             final_pose = set_pose
         else:
             assert len(self.all_pd_pose) > 0
-            lspeed = Isometry()
+            lspeed = Isometry() # 通过优化得到位姿
             final_pose = self.gauss_newton(self.all_pd_pose[-1].dot(lspeed), cur_intensity, cur_depth, cur_dIdxy, pc_data, calib)
 
         self.last_intensity = cur_intensity

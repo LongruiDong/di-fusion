@@ -2,7 +2,7 @@ import copy
 import functools
 import threading
 from pathlib import Path
-
+# -*- coding:utf-8 -*-
 import open3d as o3d
 import torch
 import logging
@@ -166,7 +166,7 @@ class DenseIndexedMap:
         :param model:       neural network models
         :param latent_dim:  size of latent dim
         :param device:      device type of the map (some operations can still on host)
-        :param optimization_device  note this does not take effect when using sync mode.
+        :param optimization_device  note this does not take effect when using sync mode. 这里说反了吧 不使用并行时 才没用
         """
         mp.set_start_method('forkserver', force=True)
 
@@ -174,13 +174,13 @@ class DenseIndexedMap:
         self.model.eval()
         net_util.fix_weight_norm_pickle(self.model.decoder)
 
-        self.voxel_size = args.voxel_size
-        self.n_xyz = np.ceil((np.asarray(args.bound_max) - np.asarray(args.bound_min)) / args.voxel_size).astype(int).tolist()
-        logging.info(f"Map size Nx = {self.n_xyz[0]}, Ny = {self.n_xyz[1]}, Nz = {self.n_xyz[2]}")
+        self.voxel_size = args.voxel_size # default 1m 每个体素大小
+        self.n_xyz = np.ceil((np.asarray(args.bound_max) - np.asarray(args.bound_min)) / args.voxel_size).astype(int).tolist() # bound内划分出grid 的size
+        logging.info(f"Map size Nx = {self.n_xyz[0]}, Ny = {self.n_xyz[1]}, Nz = {self.n_xyz[2]}") #输出grid的shape
 
         self.args = args
         self.bound_min = torch.tensor(args.bound_min, device=device).float()
-        self.bound_max = self.bound_min + self.voxel_size * torch.tensor(self.n_xyz, device=device)
+        self.bound_max = self.bound_min + self.voxel_size * torch.tensor(self.n_xyz, device=device) #取整 实际max bound
         self.latent_dim = latent_dim
         self.device = device
         self.integration_offsets = [torch.tensor(t, device=self.device, dtype=torch.float32) for t in [
@@ -211,7 +211,7 @@ class DenseIndexedMap:
         }
         self.backup_var_names = ["indexer", "latent_vecs", "latent_vecs_pos", "voxel_obs_count"]
         self.backup_vars = {}
-        self.modifying_lock = threading.Lock()
+        self.modifying_lock = threading.Lock() #线程锁 用途
         # Allow direct visit by variable
         for p in self.cold_vars.keys():
             setattr(DenseIndexedMap, p, property(
@@ -345,7 +345,7 @@ class DenseIndexedMap:
         :param async_optimize: whether to spawn a separate job to optimize.
             Note: the optimization is based on the point at this function call.
                   optimized result will be updated on the next function call after it's ready.
-            Caveat: If two optimization thread are started simultaneously, results may not be accurate.
+            Caveat: If two optimization thread are started simultaneously, results may not be accurate. # 警告
                     Although we explicitly ban this, user can also trigger this by call the function with async_optimize = True+False.
                     Please use consistent `async_optimize` during a SLAM session.
         :return:
@@ -368,8 +368,8 @@ class DenseIndexedMap:
         surface_grid_id = torch.ceil(surface_xyz_normalized).long() - 1
         surface_grid_id = self._linearize_id(surface_grid_id)
 
-        # Remove the observations where it is sparse.
-        unq_mask = None
+        # Remove the observations where it is sparse. 去掉voxel内观测太少的 得调吧
+        unq_mask = None #mask掉
         if self.args.prune_min_vox_obs > 0:
             _, unq_inv, unq_count = torch.unique(surface_grid_id, return_counts=True, return_inverse=True)
             unq_mask = (unq_count > self.args.prune_min_vox_obs)[unq_inv]
@@ -400,7 +400,7 @@ class DenseIndexedMap:
 
         # -- 2. Get all voxels whose confidence is lower than optimization threshold and encoder them --
         # Find my voxels conditions:
-        #   1) Voxel confidence < Threshold
+        #   1) Voxel confidence < Threshold #这里的confidence 和不确定性是两回事吧 只是voxel内观测数量
         #   2) Voxel is valid.
         #   3) Not optimized.
         #   4) There is surface points in the [-0.5 - 0.5] range of this voxel.
@@ -583,15 +583,16 @@ class DenseIndexedMap:
                      interpolate: bool = True):
         """
         Extract mesh using marching cubes.
-        :param voxel_resolution: int, number of sub-blocks within an LIF block.
-        :param max_n_triangles: int, maximum number of triangles.
+        :param voxel_resolution: int, number of sub-blocks within an LIF block. 可视化mesh的分辨率 LIF是啥
+        :param max_n_triangles: int, maximum number of triangles. 会影响完整性吗？ 4e6已经很大了
         :param fast: whether to hierarchically extract sdf for speed improvement.
         :param interpolate: whether to interpolate sdf values.
         :param extract_async: if set to True, the function will only return a mesh when
                 1) There is a change in the map.
                 2) The request is completed.
-                otherwise, it will just return None.
+                otherwise, it will just return None. # run_async参数也会影响mesh
         :param no_cache: ignore cached mesh and restart over.
+        :param max_std: ? 默认0.15 是那个 uncertainty?
         :return: Open3D mesh.
         """
         if self.meshing_thread is not None:
@@ -621,13 +622,13 @@ class DenseIndexedMap:
                     for b_name in self.backup_var_names:
                         self.backup_vars[b_name] = self.cold_vars[b_name]
 
-        def do_meshing(voxel_resolution):
+        def do_meshing(voxel_resolution): # 真正mesh的函数
             torch.cuda.synchronize()
             with torch.cuda.stream(self.meshing_stream):
                 focused_flatten_id = self.latent_vecs_pos[updated_vec_id]
                 occupied_flatten_id = self._expand_flatten_id(focused_flatten_id)
                 occupied_vec_id = self.indexer[occupied_flatten_id]  # (B, )
-                # Remove voxels with too low confidence.
+                # Remove voxels with too low confidence. # 和观测量阈值有关 得调吧
                 occupied_vec_id = occupied_vec_id[self.voxel_obs_count[occupied_vec_id] > self.args.ignore_count_th]
 
                 vec_id_batch_mapping = torch.ones((occupied_vec_id.max().item() + 1,), device=self.device, dtype=torch.int) * -1

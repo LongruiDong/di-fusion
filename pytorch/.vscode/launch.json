@@ -1,0 +1,24 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {"CUDA_VISIBLE_DEVICES":"3", // 指定显卡 但好像还是一个卡
+            "DISPLAY":"222.29.67.109:0.0" //222.29.67.109 162.105.91.183
+            },   
+            "args": [ // python main.py configs/fusion-lr-kt.yaml --vis 1
+                // fusion-lr-kt0.yaml tartanair-hospital0.yaml scene0000-00.yaml
+                "configs/fusion-lr-kt0.yaml" //, 对应配置文件  tartanair-hospital0.yaml
+                // "--vis", "true" //可视化map
+            ],
+            "justMyCode": false //false true
+        }
+    ]
+}

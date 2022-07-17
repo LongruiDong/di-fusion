@@ -1,0 +1,64 @@
+# Sequence parameters
+sequence_type: "tartanair.TartanAir" #指定data api class
+sequence_kwargs: #读入数据时的路径等 参数
+  path: "dataset/TartanAir/hospital/Easy/P000"
+  start_frame: 0
+  end_frame: -1                                       # Run all frames -1.4, 1.5, 1.5
+  first_tq: [-17., -7., -11.5, 0.0, -1.0, 0.0, 0.0]     # Starting pose 首帧位姿 tx ty tz | w i j k 实部在前
+  load_gt: True                                       # load gt pose False默认不读入
+  w_depth_noise: True                                 # 给原深度图增加噪声
+  # create_noise: True                                 # 是否要走一遍生成噪声的流程 补充 
+
+# Network parameters (network structure, etc. will be inherited from the training config)
+training_hypers: "ckpt/default/hyper.json"
+using_epoch: 300
+
+# Separate tracking and meshing. 
+run_async: true # false true
+# Enable visualization
+vis: false
+resolution: 4 # 4 只是可视化的mesh的分辨率 number of sub-blocks within an LIF block
+
+# These two define the range of depth observations to be cropped. Unit is meter.
+depth_cut_min: 0.1 # 0.5 0.1
+depth_cut_max: 100.0 #5 for icl indoor 
+
+meshing_interval: 10 # 20  好像没用到
+integrate_interval: 5 # map 的频率吧 20 10 5 2
+
+# Mapping parameters
+mapping:
+  # axis_aligned_bounding_box:  bound noise std 0.5 trunc 25
+  # [(-41.0900, -10.6424, -14.0562) - (10.9287, 7.4735, 32.0270)]
+  # extent: 
+  # [52.01872814 18.11583031 46.08320972]
+
+  # Bound of the scene to be reconstructed
+  bound_min: [-50., -15., -20.]
+  bound_max: [20.5, 15.7, 42.5]
+  voxel_size: 0.1 #感觉很重要 先不变
+  # Prune observations if detected as noise. 16 16.0 600
+  prune_min_vox_obs: 16 # 16 0表示不prune 其他就被mask掉了
+  ignore_count_th: 16.0 # 16.0
+  encoder_count_th: 600.0 # 600 和是否envode以及优化有关 300 100 16 10 2
+
+# Tracking parameters
+tracking:
+  # An array defining how the camera pose is optimized.
+  # Each element is a dictionary:
+  #   For example {"n": 2, "type": [['sdf'], ['rgb', 1]]} means to optimize the summation of sdf term and rgb term
+  # at the 1st level pyramid for 2 iterations. 也有多层级？
+  iter_config:
+    - {"n": 10, "type": [['rgb', 2]]}
+    - {"n": 10, "type": [['sdf'], ['rgb', 1]]}
+    - {"n": 50, "type": [['sdf'], ['rgb', 0]]}
+  sdf:
+    robust_kernel: "huber"
+    robust_k: 5.0
+    subsample: 0.5
+  rgb:
+    weight: 500.0
+    robust_kernel: null
+    robust_k: 0.01
+    min_grad_scale: 0.0
+    max_depth_delta: 0.2

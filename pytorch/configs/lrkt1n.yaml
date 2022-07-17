@@ -1,0 +1,49 @@
+# Sequence parameters
+sequence_type: "icl_nuim.ICLNUIMSequence"
+sequence_kwargs:
+  path: "/home/huangjh/shared-home/implicit-slam/project_data/sequences/iclnuim/lr_kt1_noise"
+  start_frame: 0
+  end_frame: -1
+  first_tq: [0.1, 1.3, 0.1, 0.0, -1.0, 0.0, 0.0]
+
+# Network parameters (network structure, etc. will be inherited from the training config)
+training_hypers: "../lr_kt0_noise/model/default2/hyper.json"
+using_epoch: 300
+
+# Separate tracking and meshing.
+run_async: false
+# Enable visualization
+vis: false
+resolution: 4
+
+depth_cut_min: 0.5
+depth_cut_max: 5.0
+
+meshing_interval: 20
+integrate_interval: 20
+
+# Mapping parameters (See README.md for details)
+mapping:
+  bound_min: [-3.5, -0.5, -2.5]
+  bound_max: [4.5, 3.5, 5.5]
+  voxel_size: 0.1
+  prune_min_vox_obs: 16
+  ignore_count_th: 16.0
+  encoder_count_th: 600.0
+
+# Tracking parameters (See README.md for details)
+tracking:
+  iter_config:
+    - {"n": 10, "type": [['rgb', 2]]}
+    - {"n": 10, "type": [['sdf'], ['rgb', 1]]}
+    - {"n": 50, "type": [['sdf'], ['rgb', 0]]}
+  sdf:
+    robust_kernel: "huber"
+    robust_k: 5.0
+    subsample: 0.5
+  rgb:
+    weight: 500.0
+    robust_kernel: null
+    robust_k: 0.01
+    min_grad_scale: 0.0
+    max_depth_delta: 0.2

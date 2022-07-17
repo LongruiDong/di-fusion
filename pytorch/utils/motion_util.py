@@ -1,6 +1,6 @@
 import numpy as np
 from pyquaternion import Quaternion
-
+# -*- coding:utf-8 -*-
 
 def so3_vee(Phi):
     if Phi.ndim < 3:
@@ -160,12 +160,12 @@ def project_orthogonal(rot):
 
 
 class Isometry:
-    GL_POST_MULT = Quaternion(degrees=180.0, axis=[1.0, 0.0, 0.0])
+    GL_POST_MULT = Quaternion(degrees=180.0, axis=[1.0, 0.0, 0.0]) #绕x轴转180 其实就是R[:,1:3]=-I[:,1:3]取反 和nice-slam那边一样 
 
     def __init__(self, q=None, t=None):
         if q is None:
             q = Quaternion()
-        if t is None:
+        if t is None: #默认0
             t = np.zeros(3)
         if not isinstance(t, np.ndarray):
             t = np.asarray(t)
@@ -277,7 +277,7 @@ class Isometry:
     def dot(self, right):
         return Isometry(q=(self.q * right.q), t=(self.q.rotate(right.t) + self.t))
 
-    def to_gl_camera(self):
+    def to_gl_camera(self): # 右乘旋转变换 什么意义？
         return Isometry(q=(self.q * self.GL_POST_MULT), t=self.t)
 
     @staticmethod

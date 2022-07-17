@@ -1,6 +1,6 @@
 from pathlib import Path
 from torch.utils.cpp_extension import load
-
+# -*- coding:utf-8 -*-
 
 def p(rel_path):
     abs_path = Path(__file__).parent / rel_path
